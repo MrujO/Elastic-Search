@@ -36,11 +36,70 @@ class ReindexCommand extends Command
     {
         $this->info('Indexing all places. This might take a while...');
 
+        $this->elasticsearch->indices()->delete(['index' => 'places']);
+
+        $params = [
+            'index' => 'places',
+            'body' => [
+                'settings' => [
+                    'analysis' => [
+                        'analyzer' => [
+                            'autocomplete' => [
+                                'tokenizer' => 'autocomplete',
+                                'filter' => ['lowercase', 'asciifolding']
+                            ],
+
+                            'autocomplete_search' => [
+                                'tokenizer' => 'lowercase',
+                            ]
+                        ],
+
+                        'tokenizer' => [
+                            'autocomplete' => [
+                                'type' => 'edge_ngram',
+                                'min_gram' => 3,
+                                'max_gram' => 4,
+                                'token_chars' => ['letter']
+                            ]
+                        ]
+                    ]
+                ],
+                'mappings' => [
+                    'properties' => [
+                        'id' => [
+                            'type' => 'text',
+                            'index' => 'false'
+                        ],
+                        'key' => [
+                            'type' => 'text',
+                            'index' => 'false'
+                        ],
+                        'uf' => [
+                            'type' => 'text',
+                            'analyzer' => 'autocomplete',
+                            'search_analyzer' => 'autocomplete_search'
+                        ],
+                        'cidade' => [
+                            'type' => 'text',
+                            'analyzer' => 'autocomplete',
+                            'search_analyzer' => 'autocomplete_search'
+                        ],
+                        'bairro' => [
+                            'type' => 'text',
+                            'analyzer' => 'autocomplete',
+                            'search_analyzer' => 'autocomplete_search'
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $this->elasticsearch->indices()->create($params);
+
         foreach (Place::cursor() as $place)
         {
             $this->elasticsearch->index([
                 'index' => $place->getSearchIndex(),
-                'type' => $place->getSearchType(),
                 'id' => $place->getKey(),
                 'body' => $place->toSearchArray(),
             ]);

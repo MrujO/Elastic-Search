@@ -32,12 +32,10 @@ class ElasticsearchRepository implements PlacesRepository
 
         $items = $this->elasticsearch->search([
             'index' => $model->getSearchIndex(),
-            'type' => $model->getSearchType(),
             'body' => [
                 'query' => [
-                    'multi_match' => [
-                        'fields' => ['uf', 'cidade', 'bairro'],
-                        'query' => $query,
+                    'match' => [
+                        '_all' => $query
                     ],
                 ],
             ],
